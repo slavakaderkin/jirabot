@@ -29,21 +29,21 @@ async function handleMessage(message) {
         requestTaskNumber(userId, chatId, user);
       }, MESSAGE_WAIT_TIME);
   } else if (userStates[userId].state === 'awaiting_task_number' && /^[A-Z]+-\d+$/.test(message?.text || message?.caption)) {
-    //console.log(`User ${userId} provided task number: ${message?.text || message?.caption}`);
+    console.log(`User ${userId} provided task number: ${message?.text || message?.caption}`);
     try {
       await processTaskNumber(message, userId, chatId, user);
     } catch (error) {
       console.error('Error processing task number:', error);
     }
   } else if (userStates[userId].state === 'awaiting_comment') {
-    //console.log(`User ${userId} provided comment header: ${message?.text || message?.caption}`);
+    console.log(`User ${userId} provided comment header: ${message?.text || message?.caption}`);
     try {
       await processComment(message, userId, chatId, user);
     } catch (error) {
       console.error('Error processing comment:', error);
     }
   } else {
-    //console.log(`User ${userId} sent unknown command: ${message?.text || message?.caption}`);
+    console.log(`User ${userId} sent unknown command: ${message?.text || message?.caption}`);
     try {
       await Tg.sendMessage(chatId, 'Неизвестная команда. Попробуйте снова.');
     } catch (error) {
@@ -58,7 +58,7 @@ async function processTaskNumber(message, userId, chatId, chat) {
 
   try {
     const issue = await Jira.getIssue(issueId, chat);
-    //console.log(`Issue ${issueId} found:`, issue);
+    console.log(`Issue ${issueId} found:`, issue);
     userStates[userId].issueId = issueId;
     userStates[userId].accountId = issue?.fields?.assignee?.accountId;
     userStates[userId].state = 'awaiting_comment';
@@ -72,13 +72,12 @@ async function processTaskNumber(message, userId, chatId, chat) {
 async function processComment(message, userId, chatId, chat) {
   const commentHeader = message.text || message.caption;
   const forwardedMessages = userStates[userId].forwardedMessages;
-  //console.log(`Processing comment for user ${userId} with header: ${commentHeader}`);
+  console.log(`Processing comment for user ${userId} with header: ${commentHeader}`);
 
-  
   let comment = '';
-  comment += `{panel:title=${commentHeader}}\n`;
+  comment += `{noformat:collapse|title=${commentHeader}}`;
   comment += await processForwardedMessages(forwardedMessages);
-  comment += `\n{panel}`;
+  comment += `\n{noformat:collapse}`;
 
   try {
     const user = await Jira.getUser(userStates?.[userId]?.accountId, chat);
@@ -87,7 +86,7 @@ async function processComment(message, userId, chatId, chat) {
     }
 
     await Jira.addComment(userStates[userId].issueId, comment, userStates?.[userId]?.accountId, chat);
-    //console.log(`Comment added to issue ${userStates[userId].issueId}`);
+    console.log(`Comment added to issue ${userStates[userId].issueId}`);
     await Tg.sendMessage(chatId, 'Комментарий добавлен в задачу.');
     delete userStates[userId];
   } catch (error) {
@@ -101,7 +100,7 @@ async function requestTaskNumber(userId, chatId, chat) {
   userStates[userId].state = 'awaiting_task_number';
   const messages = userStates[userId].forwardedMessages;
   if (messages.length > 0) {
-    //console.log(`Requesting task number from user ${userId}`);
+    console.log(`Requesting task number from user ${userId}`);
     const issues = await Jira.getIssues(null, null, null, null, chat);
     const keyboard = issues?.issues ? JSON.stringify({ inline_keyboard: [issues?.issues.map(({ key }) => ({ text: key, callback_data: key }))] }) : '';
     Tg.sendMessage(chatId, 'Сообщения получены. Пожалуйста, введите номер задачи или выберите из доступных задач:', keyboard)

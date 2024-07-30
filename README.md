@@ -2,9 +2,8 @@
 
 ## Настройка окружения
 * `sh env.sh`
-
-## Загрузка кода
-* `git clone https://github.com/slavakaderkin/jirabot.git`,
+* Положите сертификат в директорию `cert`
+Откройте доступ к сертификатам в файле  `bot.js`. Замените модуль на `https` `const http = require('https');` в файле `server.js`.
 
 ## Переменные окружения и пользователи
 Добавьте в скрипт `setup.sh` свои API ключи, а также свяжите пользователей `users.js` Jira с Telegram id
@@ -20,6 +19,7 @@
   1795394319: 'slavakaderkin@gmail.com',
 };
 ```
+Добавьте в конфиг домен до сервера и путь до хука (домен + `/webhook`). Домен должен быть с `https`.
 
 ## Запуск
 * `sh setup.sh`

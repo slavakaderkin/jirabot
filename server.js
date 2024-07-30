@@ -11,6 +11,7 @@ class Server {
       console.log(`Server is listening on port ${SERVER_PORT}`);
       try {
         const response = await Tg.setWebhook(WEBHOOK_URL);
+        console.log("🚀 ~ Server ~ server.listen ~ response:", response)
         if (response && response.ok) {
           console.log('Webhook was set successfully');
         } else {
@@ -25,6 +26,7 @@ class Server {
       console.log('Cleaning up...');
       try {
         const response = await Tg.deleteWebhook();
+        console.log("🚀 ~ Server ~ cleanup ~ response:", response)
         if (response && response.ok) {
           console.log('Webhook was deleted successfully');
         } else {
