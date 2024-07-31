@@ -1,4 +1,4 @@
-const http = require('http'); // change to https
+const http = require('https'); // change to https
 const Tg = require('./handlers/api');
 const { WEBHOOK_URL, SERVER_PORT } = require('./config');
 const handleRequest = require('./router');
