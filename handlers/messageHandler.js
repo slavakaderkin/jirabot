@@ -102,6 +102,7 @@ async function requestTaskNumber(userId, chatId, chat) {
   if (messages.length > 0) {
     console.log(`Requesting task number from user ${userId}`);
     const issues = await Jira.getIssues(null, null, null, null, chat);
+    if (!issues) return;
     const keyboard = issues?.issues ? JSON.stringify({ inline_keyboard: [issues?.issues.map(({ key }) => ({ text: key, callback_data: key }))] }) : '';
     Tg.sendMessage(chatId, 'Сообщения получены. Пожалуйста, введите номер задачи или выберите из доступных задач:', keyboard)
       .then(() => console.log('Task number request sent'))

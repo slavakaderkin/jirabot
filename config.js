@@ -5,5 +5,5 @@ module.exports = {
   JIRA_API_TOKEN: process.env.JIRA_API_TOKEN,
   WEBHOOK_URL: process.env.WEBHOOK_URL || 'https://muddy-glade-27725.pktriot.net/webhook/',
   WEB_URL: process.env.WEB_URL || 'https://muddy-glade-27725.pktriot.net',
-  SERVER_PORT: 3000
+  SERVER_PORT: 8443
 };
