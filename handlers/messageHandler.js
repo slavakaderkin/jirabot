@@ -2,10 +2,12 @@ const Jira = require('../jiraClient');
 const Tg = require('./api');
 const { processForwardedMessages } = require('../lib/messageProcessor');
 
-let userStates = {};
-const MESSAGE_WAIT_TIME = 1000; // 5 секунд
+const MESSAGE_WAIT_TIME = 1000;
+const messages = {
+  awaiting_task_number: 'Задача не найдена, попробуйте снова.'
+}
 
-async function handleMessage(message) {
+async function handleMessage(message, userStates) {
   const chatId = message.chat.id;
   const userId = message.chat.id;
   const user = message.chat;
@@ -26,50 +28,55 @@ async function handleMessage(message) {
   ) {
       userStates[userId].forwardedMessages.push(message);
       userStates[userId].timer = setTimeout(() => {
-        requestTaskNumber(userId, chatId, user);
+        requestTaskNumber(userId, chatId, user, userStates);
       }, MESSAGE_WAIT_TIME);
   } else if (userStates[userId].state === 'awaiting_task_number' && /^[A-Z]+-\d+$/.test(message?.text || message?.caption)) {
     console.log(`User ${userId} provided task number: ${message?.text || message?.caption}`);
     try {
-      await processTaskNumber(message, userId, chatId, user);
+      await processTaskNumber(message, userId, chatId, user, userStates);
     } catch (error) {
       console.error('Error processing task number:', error);
     }
   } else if (userStates[userId].state === 'awaiting_comment') {
     console.log(`User ${userId} provided comment header: ${message?.text || message?.caption}`);
     try {
-      await processComment(message, userId, chatId, user);
+      await processComment(message, userId, chatId, user, userStates);
     } catch (error) {
       console.error('Error processing comment:', error);
     }
   } else {
     console.log(`User ${userId} sent unknown command: ${message?.text || message?.caption}`);
     try {
-      await Tg.sendMessage(chatId, 'Неизвестная команда. Попробуйте снова.');
+      const message = messages[userStates[userId].state] || 'Неизвестная команда. Попробуйте снова.'
+      await Tg.sendMessage(chatId, message);
     } catch (error) {
       console.error('Error sending message:', error);
     }
   }
 }
 
-async function processTaskNumber(message, userId, chatId, chat) {
+async function processTaskNumber(message, userId, chatId, chat, userStates) {
   const issueId = message?.text || message?.caption;
   console.log(`Processing task number ${issueId} for user ${userId}`);
 
   try {
     const issue = await Jira.getIssue(issueId, chat);
-    console.log(`Issue ${issueId} found:`, issue);
-    userStates[userId].issueId = issueId;
-    userStates[userId].accountId = issue?.fields?.assignee?.accountId;
-    userStates[userId].state = 'awaiting_comment';
-    await Tg.sendMessage(chatId, 'Задача найдена. Пожалуйста, охарактеризуйте полученные сообщения.');
+    console.log("🚀 ~ processTaskNumber ~ issue:", issue)
+    if (!issue) await Tg.sendMessage(chatId, 'Задача не найдена. Попробуйте снова.');
+    else {
+      console.log(`Issue ${issueId} found:`, issue);
+      userStates[userId].issueId = issueId;
+      userStates[userId].accountId = issue?.fields?.assignee?.accountId;
+      userStates[userId].state = 'awaiting_comment';
+      await Tg.sendMessage(chatId, 'Задача найдена. Пожалуйста, охарактеризуйте полученные сообщения.');
+    }
   } catch (error) {
     console.error(`Error fetching issue ${issueId}:`, error);
     await Tg.sendMessage(chatId, 'Задача не найдена. Попробуйте снова.');
   }
 }
 
-async function processComment(message, userId, chatId, chat) {
+async function processComment(message, userId, chatId, chat, userStates) {
   const commentHeader = message.text || message.caption;
   const forwardedMessages = userStates[userId].forwardedMessages;
   console.log(`Processing comment for user ${userId} with header: ${commentHeader}`);
@@ -96,7 +103,7 @@ async function processComment(message, userId, chatId, chat) {
   }
 }
 
-async function requestTaskNumber(userId, chatId, chat) {
+async function requestTaskNumber(userId, chatId, chat, userStates) {
   userStates[userId].state = 'awaiting_task_number';
   const messages = userStates[userId].forwardedMessages;
   if (messages.length > 0) {
